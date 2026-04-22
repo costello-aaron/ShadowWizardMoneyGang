@@ -3,53 +3,118 @@ using UnityEngine.SceneManagement;
 
 public class ExitDoorController : MonoBehaviour
 {
-    public GameObject[] enemies;   // Assign all enemies in the room
-    public bool isUnlocked = false;
+    public bool isLocked = true;
+    [Header("Level Transition")]
+    [SerializeField] private string nextSceneName = "";
+    [SerializeField] private bool useNextBuildIndex = true;
+    [SerializeField] private Renderer targetRenderer;
+    private Material runtimeDoorMaterial;
 
-    void Update()
+    void Log(string message)
     {
-        if (!isUnlocked && AllEnemiesDead())
-        {
-            UnlockDoor();
-        }
+        Debug.Log($"[ExitDoorController:{name}] {message}");
     }
 
-    bool AllEnemiesDead()
+    public void SetLocked(bool locked)
     {
-        foreach (GameObject enemy in enemies)
+        Log($"SetLocked(locked={locked})");
+        isLocked = locked;
+
+        Collider col = GetComponent<Collider>();
+        if (col != null)
         {
-            if (enemy != null)
-                return false;
+            col.isTrigger = !locked;
+            Log($"Collider isTrigger set to {col.isTrigger}");
         }
-        return true;
-    }
+        else
+        {
+            Log("No Collider found.");
+        }
 
-    void UnlockDoor()
-    {
-        isUnlocked = true;
+        Renderer rend = targetRenderer != null ? targetRenderer : GetComponentInChildren<Renderer>();
 
-        Debug.Log("Door Unlocked!");
+        if (rend != null)
+        {
+            Material mat = null;
 
-        // Make door passable
-        GetComponent<Collider>().isTrigger = true;
+            // Use a per-instance material at runtime so only this door changes color.
+            if (Application.isPlaying && gameObject.scene.IsValid())
+            {
+                if (runtimeDoorMaterial == null)
+                {
+                    Material source = rend.sharedMaterial;
+                    if (source != null)
+                    {
+                        runtimeDoorMaterial = new Material(source);
+                        rend.material = runtimeDoorMaterial;
+                        Log("Created runtime material instance for door.");
+                    }
+                }
 
-        // Optional: change color to show it's unlocked
-        GetComponent<Renderer>().material.color = Color.green;
+                mat = runtimeDoorMaterial;
+            }
+
+            // Fallback path for non-runtime/prefab contexts.
+            if (mat == null)
+            {
+                mat = rend.sharedMaterial;
+            }
+
+            if (mat != null)
+            {
+                mat.color = locked ? Color.red : Color.green;
+                Log($"Door color updated to {(locked ? "red" : "green")}");
+            }
+            else
+            {
+                Log("No material found on renderer.");
+            }
+        }
+        else
+        {
+            Log("No child Renderer found.");
+        }
     }
 
     void OnTriggerEnter(Collider other)
     {
-        if (isUnlocked && other.CompareTag("Player"))
+        Log($"OnTriggerEnter(other={other.name}, tag={other.tag}, isLocked={isLocked})");
+        if (!isLocked && other.CompareTag("Player"))
         {
-            EndLevel();
+            LoadNextLevel();
         }
     }
 
-    void EndLevel()
+    void LoadNextLevel()
     {
-        Debug.Log("Level Complete!");
+        if (!string.IsNullOrWhiteSpace(nextSceneName))
+        {
+            if (Application.CanStreamedLevelBeLoaded(nextSceneName))
+            {
+                Log($"Loading next scene by name: {nextSceneName}");
+                SceneManager.LoadScene(nextSceneName);
+                return;
+            }
 
-        // Reload scene (simple version)
+            Log($"Scene '{nextSceneName}' is not in Build Settings. Falling back.");
+        }
+
+        if (useNextBuildIndex)
+        {
+            int currentIndex = SceneManager.GetActiveScene().buildIndex;
+            int nextIndex = currentIndex + 1;
+            int sceneCount = SceneManager.sceneCountInBuildSettings;
+
+            if (nextIndex < sceneCount)
+            {
+                Log($"Loading next scene by build index: {nextIndex}");
+                SceneManager.LoadScene(nextIndex);
+                return;
+            }
+
+            Log("No next scene in Build Settings. Reloading current scene.");
+        }
+
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 }

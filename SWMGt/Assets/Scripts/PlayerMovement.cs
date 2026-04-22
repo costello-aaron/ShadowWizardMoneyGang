@@ -7,6 +7,13 @@ public class PlayerMovement : MonoBehaviour
 
     public Transform playerCamera;
     float xRotation = 0f;
+    private float baseMoveSpeed;
+    private Coroutine speedBoostRoutine;
+
+    void Awake()
+    {
+        baseMoveSpeed = moveSpeed;
+    }
 
     void Update()
     {
@@ -33,5 +40,24 @@ public class PlayerMovement : MonoBehaviour
 
         playerCamera.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
         transform.Rotate(Vector3.up * mouseX);
+    }
+
+    public void ApplySpeedBoost(float multiplier, float duration)
+    {
+        if (multiplier <= 0f || duration <= 0f)
+            return;
+
+        if (speedBoostRoutine != null)
+            StopCoroutine(speedBoostRoutine);
+
+        speedBoostRoutine = StartCoroutine(SpeedBoostRoutine(multiplier, duration));
+    }
+
+    System.Collections.IEnumerator SpeedBoostRoutine(float multiplier, float duration)
+    {
+        moveSpeed = baseMoveSpeed * multiplier;
+        yield return new WaitForSeconds(duration);
+        moveSpeed = baseMoveSpeed;
+        speedBoostRoutine = null;
     }
 }
