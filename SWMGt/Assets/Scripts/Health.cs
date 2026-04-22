@@ -7,6 +7,9 @@ public class Health : MonoBehaviour
 
     public bool destroyOnDeath = true;
 
+    /// <summary>Invoked after the player loses health (amount &gt; 0). Used by damage vignette, etc.</summary>
+    public static event System.Action<float> OnPlayerDamaged;
+
     void Log(string message)
     {
         Debug.Log($"[Health:{name}] {message}");
@@ -16,6 +19,9 @@ public class Health : MonoBehaviour
     {
         Log($"Start() maxHealth={maxHealth}");
         currentHealth = maxHealth;
+
+        if (CompareTag("Player"))
+            DamageVignetteUI.EnsureExists();
     }
 
     public void TakeDamage(float amount)
@@ -23,6 +29,9 @@ public class Health : MonoBehaviour
         Log($"TakeDamage(amount={amount}) currentHealth(before)={currentHealth}");
         currentHealth -= amount;
         Log($"TakeDamage currentHealth(after)={currentHealth}");
+
+        if (CompareTag("Player") && amount > 0f)
+            OnPlayerDamaged?.Invoke(amount);
 
         if (currentHealth <= 0)
         {

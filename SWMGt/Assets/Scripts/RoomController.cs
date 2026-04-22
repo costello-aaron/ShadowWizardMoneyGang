@@ -15,6 +15,9 @@ public class RoomController : MonoBehaviour
     private int enemiesAlive = 0;
     private bool roomActive = false;
 
+    /// <summary>True after all enemies in this room are defeated (doors/chests unlocked).</summary>
+    public bool IsCleared => roomCompleted;
+
     void Log(string message)
     {
         Debug.Log($"[RoomController:{name}] {message}");

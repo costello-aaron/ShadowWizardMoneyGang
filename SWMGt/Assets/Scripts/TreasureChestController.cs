@@ -6,9 +6,7 @@ public class TreasureChestController : MonoBehaviour
     [SerializeField] private bool isLocked = true;
     [SerializeField] private bool isOpened = false;
 
-    [Header("Potion Rewards")]
-    [SerializeField] private float speedMultiplier = 1.5f;
-    [SerializeField] private float speedBoostDuration = 20f;
+    [Header("Interaction")]
     [SerializeField] private float interactDistance = 3f;
 
     [Header("Visuals")]
@@ -119,44 +117,13 @@ public class TreasureChestController : MonoBehaviour
 
     void GiveRandomPotion(GameObject player)
     {
+        PlayerInventory inv = PlayerInventory.EnsureExists();
         bool giveHealthPotion = Random.value < 0.5f;
 
         if (giveHealthPotion)
-        {
-            Health health = player.GetComponentInParent<Health>();
-            if (health != null)
-            {
-                health.HealToFull();
-                Debug.Log($"[TreasureChest:{name}] Granted HEALTH potion (full heal).");
-                return;
-            }
-        }
+            inv.AddHealthPotions(1);
         else
-        {
-            PlayerMovement movement = player.GetComponentInParent<PlayerMovement>();
-            if (movement != null)
-            {
-                movement.ApplySpeedBoost(speedMultiplier, speedBoostDuration);
-                Debug.Log($"[TreasureChest:{name}] Granted SPEED potion (x{speedMultiplier} for {speedBoostDuration}s).");
-                return;
-            }
-        }
-
-        // Fallback: if preferred component is missing, try the other reward.
-        Health fallbackHealth = player.GetComponentInParent<Health>();
-        if (fallbackHealth != null)
-        {
-            fallbackHealth.HealToFull();
-            Debug.Log($"[TreasureChest:{name}] Fallback HEALTH potion (full heal).");
-            return;
-        }
-
-        PlayerMovement fallbackMove = player.GetComponentInParent<PlayerMovement>();
-        if (fallbackMove != null)
-        {
-            fallbackMove.ApplySpeedBoost(speedMultiplier, speedBoostDuration);
-            Debug.Log($"[TreasureChest:{name}] Fallback SPEED potion.");
-        }
+            inv.AddSpeedPotions(1);
     }
 
     void EnsureRuntimeMaterial()
