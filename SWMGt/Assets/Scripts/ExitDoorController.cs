@@ -5,6 +5,8 @@ public class ExitDoorController : MonoBehaviour
 {
     public bool isLocked = true;
     [Header("Level Transition")]
+    [Tooltip("Assign an empty Transform at the next room entrance. When set, the player teleports instead of loading a scene.")]
+    [SerializeField] private Transform nextRoomPlayerSpawn;
     [SerializeField] private string nextSceneName = "";
     [SerializeField] private bool useNextBuildIndex = true;
     [SerializeField] private Renderer targetRenderer;
@@ -87,6 +89,32 @@ public class ExitDoorController : MonoBehaviour
 
     void LoadNextLevel()
     {
+        if (nextRoomPlayerSpawn != null)
+        {
+            GameObject playerGo = GameObject.FindGameObjectWithTag("Player");
+            if (playerGo == null)
+            {
+                Log("nextRoomPlayerSpawn is set but no GameObject tagged 'Player' was found.");
+                return;
+            }
+
+            if (playerGo.TryGetComponent(out PlayerMovement movement))
+                movement.WarpTo(nextRoomPlayerSpawn);
+            else
+            {
+                playerGo.transform.SetPositionAndRotation(nextRoomPlayerSpawn.position, nextRoomPlayerSpawn.rotation);
+                Physics.SyncTransforms();
+            }
+
+            Collider playerCol = playerGo.GetComponent<Collider>();
+            RoomController destinationRoom = nextRoomPlayerSpawn.GetComponentInParent<RoomController>();
+            if (destinationRoom != null && playerCol != null)
+                destinationRoom.OnPlayerEnter(playerCol);
+
+            Log($"Teleported player to '{nextRoomPlayerSpawn.name}'.");
+            return;
+        }
+
         if (!string.IsNullOrWhiteSpace(nextSceneName))
         {
             if (Application.CanStreamedLevelBeLoaded(nextSceneName))

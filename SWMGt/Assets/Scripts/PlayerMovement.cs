@@ -60,4 +60,27 @@ public class PlayerMovement : MonoBehaviour
         moveSpeed = baseMoveSpeed;
         speedBoostRoutine = null;
     }
+
+    /// <summary>
+    /// Instantly moves the player (and resets vertical look) — used after room-door transitions.
+    /// </summary>
+    public void WarpTo(Transform destination)
+    {
+        if (destination == null)
+            return;
+
+        transform.SetPositionAndRotation(destination.position, destination.rotation);
+        xRotation = 0f;
+        if (playerCamera != null)
+            playerCamera.localRotation = Quaternion.identity;
+
+        Rigidbody rb = GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+
+        Physics.SyncTransforms();
+    }
 }

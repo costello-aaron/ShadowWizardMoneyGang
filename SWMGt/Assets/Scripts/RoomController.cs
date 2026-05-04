@@ -6,7 +6,15 @@ public class RoomController : MonoBehaviour
     public GameObject[] enemies;
     public GameObject[] doors;
     public TreasureChestController[] chests;
+
+    [Tooltip(
+        "Random pick per spawn. If this list has ANY non-null entry, spawning uses ONLY this list.\n• To use Enemy Prefab (single) below exclusively: clear this array (size 0) or empty all slots."
+    )]
+    public GameObject[] enemyPrefabs;
+
+    [Tooltip("Used only when Enemy Prefabs has no usable entries (null, empty array, or all slots empty).")]
     public GameObject enemyPrefab;
+
     public Transform[] spawnPoints;
     public int enemyCount = 3;
     private bool roomStarted = false;
@@ -66,14 +74,33 @@ public class RoomController : MonoBehaviour
         Debug.Log("Room Started");
     }
 
+    List<GameObject> GatherEnemyPrefabPool()
+    {
+        List<GameObject> pool = new List<GameObject>();
+        if (enemyPrefabs != null)
+        {
+            for (int i = 0; i < enemyPrefabs.Length; i++)
+            {
+                if (enemyPrefabs[i] != null)
+                    pool.Add(enemyPrefabs[i]);
+            }
+        }
+
+        if (pool.Count == 0 && enemyPrefab != null)
+            pool.Add(enemyPrefab);
+
+        return pool;
+    }
+
     void SpawnEnemies()
     {
         Log($"SpawnEnemies() enemyCount={enemyCount}");
         enemiesAlive = 0;
 
-        if (enemyPrefab == null)
+        List<GameObject> prefabPool = GatherEnemyPrefabPool();
+        if (prefabPool.Count == 0)
         {
-            Debug.LogWarning("RoomController: enemyPrefab is not assigned.");
+            Debug.LogWarning("RoomController: assign Enemy Prefabs and/or Enemy Prefab.");
             return;
         }
 
@@ -86,7 +113,9 @@ public class RoomController : MonoBehaviour
         for (int i = 0; i < enemyCount; i++)
         {
             Transform spawn = spawnPoints[Random.Range(0, spawnPoints.Length)];
-            GameObject enemy = Instantiate(enemyPrefab, spawn.position, Quaternion.identity);
+            GameObject choice = prefabPool[Random.Range(0, prefabPool.Count)];
+            GameObject enemy = Instantiate(choice, spawn.position, Quaternion.identity);
+            enemy.SetActive(true);
             Log($"Spawned enemy {i + 1}/{enemyCount} at {spawn.position}");
 
             EnemyAI ai = enemy.GetComponent<EnemyAI>();
