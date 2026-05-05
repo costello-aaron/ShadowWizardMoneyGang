@@ -18,10 +18,17 @@ public class Health : MonoBehaviour
     void Start()
     {
         Log($"Start() maxHealth={maxHealth}");
-        currentHealth = maxHealth;
+
+        if (CompareTag("Player") && PersistentPlayerHealthState.HasSavedHealth)
+            currentHealth = Mathf.Clamp(PersistentPlayerHealthState.SavedCurrentHealth, 0f, maxHealth);
+        else
+            currentHealth = maxHealth;
 
         if (CompareTag("Player"))
+        {
             DamageVignetteUI.EnsureExists();
+            PersistPlayerHealthSnapshot();
+        }
     }
 
     public void TakeDamage(float amount)
@@ -32,6 +39,14 @@ public class Health : MonoBehaviour
 
         if (CompareTag("Player") && amount > 0f)
             OnPlayerDamaged?.Invoke(amount);
+
+        if (CompareTag("Player"))
+        {
+            if (currentHealth <= 0f)
+                PersistentPlayerHealthState.Clear();
+            else
+                PersistPlayerHealthSnapshot();
+        }
 
         if (currentHealth <= 0)
         {
@@ -45,7 +60,7 @@ public class Health : MonoBehaviour
         if (CompareTag("Player"))
         {
             Log("Player died. Triggering GameOver.");
-            GameManager.instance.GameOver();
+            GameManager.EnsureExists().GameOver();
         }
         else
         {
@@ -74,11 +89,25 @@ public class Health : MonoBehaviour
 
         currentHealth = Mathf.Min(maxHealth, currentHealth + amount);
         Log($"Heal(amount={amount}) currentHealth(after)={currentHealth}");
+
+        if (CompareTag("Player"))
+            PersistPlayerHealthSnapshot();
     }
 
     public void HealToFull()
     {
         currentHealth = maxHealth;
         Log($"HealToFull() currentHealth(after)={currentHealth}");
+
+        if (CompareTag("Player"))
+            PersistPlayerHealthSnapshot();
+    }
+
+    void PersistPlayerHealthSnapshot()
+    {
+        if (!CompareTag("Player"))
+            return;
+
+        PersistentPlayerHealthState.SaveCurrent(currentHealth);
     }
 }
